@@ -2,10 +2,11 @@ import os
 import requests
 import json
 import random
+import pytz
 from telegram import Bot
 from apscheduler.schedulers.blocking import BlockingScheduler
+from telegram.ext import Updater, CommandHandler
 from dotenv import load_dotenv
-import pytz  # <- ADDED FOR TIMEZONE FIX
 
 load_dotenv()
 
@@ -13,7 +14,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 GROUP_CHAT_ID = "-1002139585995"
 bot = Bot(token=BOT_TOKEN)
 
-# Random sticker list for WIN
+# Stickers list
 stickers = [
     "CAACAgQAAxkBAAKmh2f5EBjXCvSqjGVYDT9P7yjKW6_IAAKOCAACi9XoU5p5sAokI77kNgQ",
     "CAACAgQAAxkBAAKmimf5EB9GTlXRtwVB3ez1nBUKzf69AAKaDAACfx_4UvcUEDj6i_r9NgQ",
@@ -21,13 +22,13 @@ stickers = [
     "CAACAgIAAxkBAAKmkGf5EDBgwnSDovUPpQGsTjMQdU69AAL4DAACNyx5S6FYW3VBcuj4NgQ"
 ]
 
-# Get latest period number
+# Latest period fetch
 def get_latest_period():
     url = "https://api.51gameapi.com/api/webapi/GetNoaverageEmerdList"
     headers = {
         "Content-Type": "application/json;charset=UTF-8",
         "Accept": "application/json",
-        "Authorization": "Bearer YOUR_TOKEN_HERE"  # Replace this with valid token
+        "Authorization": "Bearer YOUR_TOKEN_HERE"  # Replace with your actual token
     }
     payload = {
         "pageSize": 10,
@@ -45,11 +46,11 @@ def get_latest_period():
     except:
         return None
 
-# Choose Big or Small randomly
+# Big or Small random
 def get_random_prediction():
     return random.choice(["Big", "Small"])
 
-# Send Telegram message
+# Message sender
 def send_prediction():
     period = get_latest_period()
     if not period:
@@ -60,14 +61,22 @@ def send_prediction():
     message = f"[WINGO 1MINUTE]\nPeriod {period}\nChoose - {prediction}"
     bot.send_message(chat_id=GROUP_CHAT_ID, text=message)
     
-    # Send WIN sticker 50% randomly (simulated win)
     if random.random() < 0.5:
         chosen_sticker = random.choice(stickers)
         bot.send_sticker(chat_id=GROUP_CHAT_ID, sticker=chosen_sticker)
 
     print(f"Sent: {message}")
 
-# Schedule every 1 minute with pytz timezone fix
+# Scheduler every 1 minute
 scheduler = BlockingScheduler(timezone=pytz.utc)
 scheduler.add_job(send_prediction, 'interval', minutes=1)
 scheduler.start()
+
+# Start command handler
+def start(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Running ✅")
+
+updater = Updater(token=BOT_TOKEN, use_context=True)
+dispatcher = updater.dispatcher
+dispatcher.add_handler(CommandHandler('start', start))
+updater.start_polling()
