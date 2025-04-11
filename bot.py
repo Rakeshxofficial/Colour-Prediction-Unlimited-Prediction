@@ -5,6 +5,7 @@ import random
 from telegram import Bot
 from apscheduler.schedulers.blocking import BlockingScheduler
 from dotenv import load_dotenv
+import pytz  # <- ADDED FOR TIMEZONE FIX
 
 load_dotenv()
 
@@ -66,7 +67,7 @@ def send_prediction():
 
     print(f"Sent: {message}")
 
-# Schedule every 1 minute
-scheduler = BlockingScheduler()
+# Schedule every 1 minute with pytz timezone fix
+scheduler = BlockingScheduler(timezone=pytz.utc)
 scheduler.add_job(send_prediction, 'interval', minutes=1)
 scheduler.start()
